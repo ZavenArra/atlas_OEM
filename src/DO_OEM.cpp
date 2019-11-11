@@ -3,53 +3,65 @@
 void DO_OEM::delayForMillis(unsigned long timeout)
 {
   unsigned long t = millis();
-  while(millis() - t <= timeout){}    // do nothing  
+  while(millis() - t <= timeout){}    // do nothing
 }
 
 // basic function for I2C/SMbus access
-bool DO_OEM::i2c_write_long(byte reg, unsigned long data) {                                     //used to write a 4 bytes to a register: i2c_write_longe(register to start at,unsigned long data )                                                                                 
-  Wire.beginTransmission(device_addr);                                                          
-  Wire.write(reg);                                                                              
+bool DO_OEM::i2c_write_long(byte reg, unsigned long data) {                                     //used to write a 4 bytes to a register: i2c_write_longe(register to start at,unsigned long data )
+  this->wire->beginTransmission(device_addr);
+  this->wire->write(reg);
   for (byte i = 3; i >= 0; i--) {                                                                    //with this code we write multiple bytes in reverse
-    Wire.write(move_data.i2c_data[i]);
+    this->wire->write(move_data.i2c_data[i]);
   }
-  if(Wire.endTransmission() == 0)return true;
+  if(this->wire->endTransmission() == 0)return true;
   else return false;                                                                         //end the I2C data transmission
 }
 
 bool DO_OEM::i2c_write_byte(byte reg, byte data) {                                              //used to write a single byte to a register: i2c_write_byte(register to write to, byte data)
-  Wire.beginTransmission(device_addr);                                                         
-  Wire.write(reg);                                                                              
-  Wire.write(data);                                                                             
-  if(Wire.endTransmission() == 0)return true;
+  this->wire->beginTransmission(device_addr);
+  this->wire->write(reg);
+  this->wire->write(data);
+  if(this->wire->endTransmission() == 0)return true;
   else return false;                                                                         //end the I2C data transmission
 }
 
 void DO_OEM::i2c_read(byte reg, byte number_of_bytes_to_read, unsigned long timeout) {                                           //used to read 1,2,and 4 bytes: i2c_read(starting register,number of bytes to read)
   move_data.answ = 0;
-  Wire.beginTransmission(device_addr);                                                            
-  Wire.write(reg);                                                                                
-  if( Wire.endTransmission() == 0)
+  this->wire->beginTransmission(device_addr);
+  this->wire->write(reg);
+  if( this->wire->endTransmission() == 0)
   {
     unsigned long dt = millis();
-    Wire.requestFrom(device_addr, (byte)number_of_bytes_to_read);                                   //call the device and request to read X bytes
+    this->wire->requestFrom(device_addr, (byte)number_of_bytes_to_read);                                   //call the device and request to read X bytes
     while( millis() - dt <= timeout)
     {
-      if(Wire.available() ==  (byte)number_of_bytes_to_read)
+      if(this->wire->available() ==  (byte)number_of_bytes_to_read)
       {
           for (byte i = number_of_bytes_to_read; i > 0; i--)
-            move_data.i2c_data[i - 1] = Wire.read();
-          break;  
-      }  
+            move_data.i2c_data[i - 1] = this->wire->read();
+          break;
+      }
     }
-    Wire.endTransmission();     
-  }                                                                        
+    this->wire->endTransmission();
+  }
 }
 
 
 // main methods of lib
 
 DO_OEM::DO_OEM(uint8_t pin, uint8_t addr_)
+{
+  this->wire = &Wire;
+  this->initializeInstanceVariables(pin, addr_);
+}
+
+DO_OEM::DO_OEM(TwoWire * wire, uint8_t pin, uint8_t addr_)
+{
+  this->wire = wire;
+  this->initializeInstanceVariables(pin, addr_);
+}
+
+void DO_OEM::initializeInstanceVariables(uint8_t pin, uint8_t addr_)
 {
   this->int_pin               = pin;
   this->device_addr           = addr_;
@@ -66,9 +78,9 @@ DO_OEM::DO_OEM(uint8_t pin, uint8_t addr_)
 
 void DO_OEM::init(bool led_, bool hibernate_, uint8_t int_CTRL)
 {
-  Wire.beginTransmission(device_addr);                                                            
-  Wire.write(device_type);                                                                                
-  if( Wire.endTransmission() == 0 )
+  this->wire->beginTransmission(device_addr);
+  this->wire->write(device_type);
+  if( this->wire->endTransmission() == 0 )
   {
     if(getDeviceType() == DO_OEM_DEVICE )
     {
@@ -82,7 +94,7 @@ void DO_OEM::init(bool led_, bool hibernate_, uint8_t int_CTRL)
         this->status_presence = true;
       else
         this->status_presence = false;
-    }     
+    }
   }
   if(status_presence)
   {
@@ -129,7 +141,7 @@ bool DO_OEM::setLockedAddress(bool lock)
   {
     if ( i2c_write_byte(addr_lock, 0x00))
     {
-      i2c_read(addr_lock, one_byte_read);               
+      i2c_read(addr_lock, one_byte_read);
       if (move_data.i2c_data[0])return true;
     }
   }
@@ -152,7 +164,7 @@ bool DO_OEM::setDeviceAddress(uint8_t new_address)
   if (new_address < 1 || new_address > 127)return false;
   else
   {
-      i2c_read(addr_lock, one_byte_read);                                    
+      i2c_read(addr_lock, one_byte_read);
       if (move_data.i2c_data[0])            // addr is locked
       {
         if ( !setLockedAddress(false) ) return false;   // can't unlock
@@ -164,10 +176,10 @@ bool DO_OEM::setDeviceAddress(uint8_t new_address)
 
 uint8_t DO_OEM::isInterruptAvailable(void)
 {
-  i2c_read(int_ctrl, one_byte_read); 
+  i2c_read(int_ctrl, one_byte_read);
   if( move_data.i2c_data[0] == HIGH_ON_INTERRUPT || move_data.i2c_data[0] == LOW_ON_INTERRUPT || move_data.i2c_data[0] == CHANGE_ON_INTERRUPT )
     return move_data.i2c_data[0];
-  else 
+  else
     return DISABLED_INTERRUPT;
 }
 
@@ -193,7 +205,7 @@ bool DO_OEM::setInterruptAvailable(uint8_t mode)
 bool DO_OEM::isLedOn(void)
 {
    i2c_read(led_ctrl, one_byte_read);
-   if (move_data.i2c_data[0])       return on_DO;   
+   if (move_data.i2c_data[0])       return on_DO;
    if (move_data.i2c_data[0] == 0)  return off_DO;
 }
 
@@ -287,15 +299,15 @@ bool DO_OEM::dissolvedCalibration(uint8_t typeCal)
   {
     if ( typeCal == ATMOSPHERE_CALIBRATION )
     {
-      i2c_write_byte(calib_reg, 0x02);    
-      delayForMillis(40);                  
+      i2c_write_byte(calib_reg, 0x02);
+      delayForMillis(40);
       byte statusCal = getStatusCalibration();
       if (statusCal == ATMOSPHERE_CALIBRATION || statusCal == BOTH_CALIBRATION) return true;
     }
     else
     {
       i2c_write_byte(calib_reg, 0x03);
-      delayForMillis(40);             
+      delayForMillis(40);
       byte statusCal = getStatusCalibration();
       if (statusCal == ZERO_DO_CALIBRATION || statusCal == BOTH_CALIBRATION) return true;
     };
@@ -307,21 +319,21 @@ bool DO_OEM::requestCompensationData(void)
 {
   if(isHibernate())
   {
-    wakeUp(); 
+    wakeUp();
     delayForMillis(5);
     if(isHibernate()) return false;
   }
-  i2c_read(salinity_confirm_reg, four_byte_read); 
-    compensation.salinity = move_data.answ;       
-    compensation.salinity /= 100;                 
+  i2c_read(salinity_confirm_reg, four_byte_read);
+    compensation.salinity = move_data.answ;
+    compensation.salinity /= 100;
   NOP;
-  i2c_read(pressure_confirm_reg, four_byte_read); 
-    compensation.pressure = move_data.answ;       
-    compensation.pressure /= 100;                 
+  i2c_read(pressure_confirm_reg, four_byte_read);
+    compensation.pressure = move_data.answ;
+    compensation.pressure /= 100;
   NOP;
-  i2c_read(temp_confirm_reg, four_byte_read);  
-    compensation.temperature = move_data.answ;                             
-    compensation.temperature /= 100; 
+  i2c_read(temp_confirm_reg, four_byte_read);
+    compensation.temperature = move_data.answ;
+    compensation.temperature /= 100;
   NOP;
   return true;
 }
@@ -345,9 +357,9 @@ float DO_OEM::getPressureCompensation(bool fromStored)
         NOP; NOP;
         if ( isHibernate() ) return sqrt(-1);
       }
-      i2c_read(pressure_confirm_reg, four_byte_read); 
-      compensation.pressure = move_data.answ;       
-      compensation.pressure /= 100;             
+      i2c_read(pressure_confirm_reg, four_byte_read);
+      compensation.pressure = move_data.answ;
+      compensation.pressure /= 100;
    };
    return compensation.pressure;
 }
@@ -371,9 +383,9 @@ float DO_OEM::getSalinityCompensation(bool fromStored)
         NOP; NOP;
         if ( isHibernate() ) return sqrt(-1);
       }
-      i2c_read(salinity_confirm_reg, four_byte_read); 
-      compensation.salinity = move_data.answ;       
-      compensation.salinity /= 100;             
+      i2c_read(salinity_confirm_reg, four_byte_read);
+      compensation.salinity = move_data.answ;
+      compensation.salinity /= 100;
    };
    return compensation.salinity;
 }
@@ -397,9 +409,9 @@ float DO_OEM::getTemperatureCompensation(bool fromStored)
         NOP; NOP;
         if ( isHibernate() ) return sqrt(-1);
       }
-      i2c_read(temp_confirm_reg, four_byte_read); 
-      compensation.temperature = move_data.answ;       
-      compensation.temperature /= 100;             
+      i2c_read(temp_confirm_reg, four_byte_read);
+      compensation.temperature = move_data.answ;
+      compensation.temperature /= 100;
    };
    return compensation.temperature;
 }
@@ -408,7 +420,7 @@ float DO_OEM::getTemperatureCompensation(bool fromStored)
 bool DO_OEM::setPressureCompensation(float compenValue)
 {
   compenValue *= 100;
-  move_data.answ = compenValue;                                
+  move_data.answ = compenValue;
   if(i2c_write_long(pressure_compen_reg, move_data.answ)) return true;
   else                                                    return false;
 }
@@ -416,7 +428,7 @@ bool DO_OEM::setPressureCompensation(float compenValue)
 bool DO_OEM::setSalinityCompensation(float compenValue)
 {
   compenValue *= 100;
-  move_data.answ = compenValue;                                
+  move_data.answ = compenValue;
   if(i2c_write_long(salinity_compen_reg, move_data.answ)) return true;
   else                                                    return false;
 }
@@ -424,7 +436,7 @@ bool DO_OEM::setSalinityCompensation(float compenValue)
 bool DO_OEM::setTemperatureCompensation(float compenValue)
 {
   compenValue *= 100;
-  move_data.answ = compenValue;                                
+  move_data.answ = compenValue;
   if(i2c_write_long(temp_compen_reg, move_data.answ)) return true;
   else                                                return false;
 }
@@ -457,9 +469,9 @@ bool DO_OEM::singleReading(void)
   };
   if(isNewDataAvailable())
   {
-    i2c_read(DO_in_mg_reg, four_byte_read);                                                  
-    param.inMilligrams = move_data.answ;                                                                    
-    param.inMilligrams /= 100;                                                                              
+    i2c_read(DO_in_mg_reg, four_byte_read);
+    param.inMilligrams = move_data.answ;
+    param.inMilligrams /= 100;
     NOP;
     i2c_read(DO_in_sat_reg, four_byte_read);
     param.inSaturation = move_data.answ;

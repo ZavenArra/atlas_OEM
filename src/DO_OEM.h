@@ -9,13 +9,13 @@
 #include "AtlasOEM_basic.h"
 #include "StabilityDetector.h"
 
-#define NOP __asm__ __volatile__ ("nop\n\t") 
+#define NOP __asm__ __volatile__ ("nop\n\t")
 #define NONE_INT    255
 
 #define NONE_DATA   sqrt(-1)
 
-#define i2c_id            0x67              //default I2C address   
-#define one_byte_read     0x01              //used in a function to read data from the device  
+#define i2c_id            0x67              //default I2C address
+#define one_byte_read     0x01              //used in a function to read data from the device
 #define two_byte_read     0x02              //used in a function to read data from the device
 #define four_byte_read    0x04             //used in a function to read data from the device
 
@@ -48,6 +48,7 @@
 class DO_OEM
 {
   private:
+    TwoWire * wire;
     uint8_t int_pin;
     byte device_addr;
     union data_handler move_data;
@@ -55,19 +56,21 @@ class DO_OEM
     struct param_OEM_DO_compensation compensation;
     bool  new_reading_available,
           hibernation_status,
-          status_presence;       
+          status_presence;
     uint8_t firm_version,
             int_control,
             type_device;
     StabilityDetector   dissolvedOxygenStability;
 
+    void initializeInstanceVariables(uint8_t pin, uint8_t addr_);
     bool i2c_write_long(byte reg, unsigned long data);
     bool i2c_write_byte(byte reg, byte data);
     void i2c_read(byte reg, byte number_of_bytes_to_read, unsigned long timeout = 500UL);
     void delayForMillis(unsigned long timeout);
   public:
     DO_OEM(uint8_t pin = NONE_INT, uint8_t addr_ = i2c_id);
-    
+    DO_OEM(TwoWire * wire, uint8_t pin = NONE_INT, uint8_t addr_ = i2c_id);
+
     void init(bool led_ = off_DO , bool hibernate_ = false, uint8_t int_CTRL = DISABLED_INTERRUPT );
 // device information
     byte getDeviceType(void);
@@ -76,7 +79,7 @@ class DO_OEM
     bool isLockedAddress(void);
     bool setLockedAddress(bool lock);
     bool setDeviceAddress(uint8_t new_address);
-    byte getStoredAddr(void){return device_addr;}; 
+    byte getStoredAddr(void){return device_addr;};
 // control register
     uint8_t isInterruptAvailable(void);
     bool    setInterruptAvailable(uint8_t mode = CHANGE_ON_INTERRUPT);
@@ -98,7 +101,7 @@ class DO_OEM
     float getSalinityCompensation(bool fromStored = true );
     float getTemperatureCompensation(bool fromStored = true );
     param_OEM_DO_compensation getAllCompensation(void){return compensation;};   // need to run requestCompensationData before
-// set data    
+// set data
     bool setPressureCompensation(float compenValue);
     bool setSalinityCompensation(float compenValue);
     bool setTemperatureCompensation(float compenValue);

@@ -9,12 +9,12 @@
 #include "AtlasOEM_basic.h"
 #include "StabilityDetector.h"
 
-#define NOP __asm__ __volatile__ ("nop\n\t") 
+#define NOP __asm__ __volatile__ ("nop\n\t")
 #define NONE_INT    255
 
 
-#define i2c_id            0x64              //default I2C address   
-#define one_byte_read     0x01              //used in a function to read data from the device  
+#define i2c_id            0x64              //default I2C address
+#define one_byte_read     0x01              //used in a function to read data from the device
 #define two_byte_read     0x02              //used in a function to read data from the device
 #define four_byte_read    0x04             //used in a function to read data from the device
 
@@ -48,25 +48,29 @@
 
 class EC_OEM{
   private:
+    TwoWire * wire;
     uint8_t int_pin;
     byte device_addr;
     union data_handler move_data;
     struct param_OEM_EC param;
     bool  new_reading_available,
           hibernation_status,
-          status_presence;       
+          status_presence;
     uint8_t firm_version,
             int_control,
             type_device;
 
     StabilityDetector   SalinityStability;
-    
+
+    void initializeInstanceVariables(uint8_t pin, uint8_t addr_);
     bool i2c_write_long(byte reg, unsigned long data);
     bool i2c_write_byte(byte reg, byte data);
     void i2c_read(byte reg, byte number_of_bytes_to_read, unsigned long timeout = 500UL);
     void delayForMillis(unsigned long timeout);
   public:
     EC_OEM(uint8_t pin = NONE_INT, uint8_t addr_ = i2c_id);
+    EC_OEM(TwoWire * wire, uint8_t pin = NONE_INT, uint8_t addr_ = i2c_id);
+
     void init(bool led_ = off_EC , bool hibernate_ = false, uint8_t int_CTRL = DISABLED_INTERRUPT );
 // device information
     byte getDeviceType(void);
@@ -75,7 +79,7 @@ class EC_OEM{
     bool isLockedAddress(void);
     bool setLockedAddress(bool lock);
     bool setDeviceAddress(uint8_t new_address);
-    byte getStoredAddr(void){return device_addr;}; 
+    byte getStoredAddr(void){return device_addr;};
 // control register
     uint8_t isInterruptAvailable(void);
     bool    setInterruptAvailable(uint8_t mode = CHANGE_ON_INTERRUPT);
@@ -86,7 +90,7 @@ class EC_OEM{
     bool    wakeUp(void);
     bool    isNewDataAvailable(void);
     bool    clearNewDataRegister(void);
-// probe type    
+// probe type
     float getProbeType(void);
     bool  setProbeType(float type);
 // calibration register
@@ -97,16 +101,16 @@ class EC_OEM{
     float getTempCompensationValue(void);
     bool  setTempCompensation(float value);
 // reading parameter ; Conductivity, Salinity & TDS
-    bool  singleReading(void);  
+    bool  singleReading(void);
     float getSalinity(bool fromStored = true) ;     //true : taking data from stored-memory ( run singleReading() first ); false : request data from module
     float getConductivity(bool fromStored = true) ;
-    float getTDS(bool fromStored = true) ;  
+    float getTDS(bool fromStored = true) ;
     param_OEM_EC getAllParam(void);
 // Stability function
     bool isSalinityStable(void) {return SalinityStability.isStable();};
     void setSalinityPrecision(float precision) {this->SalinityStability.setPrecision(precision); };
     uint8_t getSalinityStableCount(void){return SalinityStability.getStableCount();};
     float getSalinityDeviasion(void){return SalinityStability.getDeviasionValue();};
-    
+
 };
 #endif
