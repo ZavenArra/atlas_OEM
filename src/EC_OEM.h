@@ -94,7 +94,8 @@ class EC_OEM{
     float getProbeType(void);
     bool  setProbeType(float type);
 // calibration register
-    uint8_t getStatusCalibration(void);
+    //uint8_t getStatusCalibration(void);
+    uint8_t getStatusCalibration(int x);
     bool    clearCalibrationData(void);
     bool    setCalibration(uint8_t mode=DRY_CALIBRATION, float value=0);
 // temperature compensation
