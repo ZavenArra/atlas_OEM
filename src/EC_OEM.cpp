@@ -10,7 +10,7 @@ void EC_OEM::delayForMillis(unsigned long timeout)
 bool EC_OEM::i2c_write_long(byte reg, unsigned long data) {                                     //used to write a 4 bytes to a register: i2c_write_longe(register to start at,unsigned long data )
   this->wire->beginTransmission(device_addr);
   this->wire->write(reg);
-  for (byte i = 3; i >= 0; i--) {                                                                    //with this code we write multiple bytes in reverse
+  for (byte i = 3; i != 255; i--) {                                                                    //with this code we write multiple bytes in reverse
     this->wire->write(move_data.i2c_data[i]);
   }
   if(this->wire->endTransmission() == 0)return true;
@@ -296,6 +296,7 @@ bool  EC_OEM::setProbeType(float type)
       return false;
 }
 
+/*
 uint8_t EC_OEM::getStatusCalibration(void)
 {
   i2c_read(calib_confirm, one_byte_read);
@@ -305,13 +306,25 @@ uint8_t EC_OEM::getStatusCalibration(void)
   if (bitRead(move_data.i2c_data[0], 2) == 1) return LOW_POINT_CALIBRATION;
   if (bitRead(move_data.i2c_data[0], 3) == 1) return HIGH_POINT_CALIBRATION;
 }
+*/
+
+uint8_t EC_OEM::getStatusCalibration(int x)
+{
+  i2c_read(calib_confirm, one_byte_read);
+  if ((x == 0) && ((move_data.i2c_data[0] & 0x00) == 0)) return NO_CALIBRATION; //0
+  if ((x == 1) && ((move_data.i2c_data[0] & 0x01) != 0)) return DRY_CALIBRATION; //1
+  if ((x == 2) && ((move_data.i2c_data[0] & 0x02) != 0)) return SINGLE_POINT_CALIBRATION; //2
+  if ((x == 3) && ((move_data.i2c_data[0] & 0x04) != 0)) return LOW_POINT_CALIBRATION; //3
+  if ((x == 4) && ((move_data.i2c_data[0] & 0x08) != 0)) return HIGH_POINT_CALIBRATION; //4
+}
+
 
 bool EC_OEM::clearCalibrationData(void)
 {
   if( i2c_write_byte(calib_request, 0x01) )
   {
     delayForMillis(10);    // don't use delay-function
-    if(getStatusCalibration() == NO_CALIBRATION ) return true;
+    if(getStatusCalibration(0) == NO_CALIBRATION ) return true;
     else                                          return false;
   }
   else
@@ -320,7 +333,7 @@ bool EC_OEM::clearCalibrationData(void)
 
 bool EC_OEM::setCalibration(uint8_t mode, float value)
 {
-  if (mode != DRY_CALIBRATION || mode != SINGLE_POINT_CALIBRATION || mode != LOW_POINT_CALIBRATION || mode != HIGH_POINT_CALIBRATION) return false;
+  if (mode != DRY_CALIBRATION && mode != SINGLE_POINT_CALIBRATION && mode != LOW_POINT_CALIBRATION && mode != HIGH_POINT_CALIBRATION) return false;
   value*=100;
   switch(mode)
   {
@@ -328,7 +341,7 @@ bool EC_OEM::setCalibration(uint8_t mode, float value)
                           if( i2c_write_byte(calib_request, 0x02) )
                           {
                             delayForMillis(15);
-                            if ( getStatusCalibration() == DRY_CALIBRATION ) return true;
+                            if ( getStatusCalibration(1) == DRY_CALIBRATION ) return true;
                             else                                             return false;
                           }
                           break;
@@ -339,7 +352,7 @@ bool EC_OEM::setCalibration(uint8_t mode, float value)
                                       if( i2c_write_byte(calib_request, 0x03) )
                                       {
                                         delayForMillis(100);
-                                        if( getStatusCalibration() == SINGLE_POINT_CALIBRATION ) return true;
+                                        if( getStatusCalibration(2) == SINGLE_POINT_CALIBRATION ) return true;
                                         else                                                     return false;
                                       }
                                     }
@@ -351,7 +364,7 @@ bool EC_OEM::setCalibration(uint8_t mode, float value)
                                   if( i2c_write_byte(calib_request, 0x04) )
                                   {
                                     delayForMillis(100);
-                                    if ( getStatusCalibration() ==  LOW_POINT_CALIBRATION ) return true;
+                                    if ( getStatusCalibration(3) ==  LOW_POINT_CALIBRATION ) return true;
                                     else                                                    return false;
                                   }
                                 }
@@ -363,7 +376,7 @@ bool EC_OEM::setCalibration(uint8_t mode, float value)
                                     if( i2c_write_byte(calib_request, 0x05) )
                                     {
                                       delayForMillis(100);
-                                      if ( getStatusCalibration() == HIGH_POINT_CALIBRATION ) return true;
+                                      if ( getStatusCalibration(4) == HIGH_POINT_CALIBRATION ) return true;
                                       else                                                    return false;
                                     };
                                   };
@@ -466,7 +479,7 @@ float EC_OEM::getConductivity(bool fromStored)
         wakeUp();
         NOP;
       }
-      return param.salinity;
+      return param.conductivity;
    }
    else
    {
