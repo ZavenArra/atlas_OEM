@@ -13,7 +13,7 @@
 #define NONE_INT    255
 
 
-#define i2c_id            0x64              //default I2C address
+#define ec_i2c_id         0x64              //default I2C address
 #define one_byte_read     0x01              //used in a function to read data from the device
 #define two_byte_read     0x02              //used in a function to read data from the device
 #define four_byte_read    0x04             //used in a function to read data from the device
@@ -68,8 +68,8 @@ class EC_OEM{
     void i2c_read(byte reg, byte number_of_bytes_to_read, unsigned long timeout = 500UL);
     void delayForMillis(unsigned long timeout);
   public:
-    EC_OEM(uint8_t pin = NONE_INT, uint8_t addr_ = i2c_id);
-    EC_OEM(TwoWire * wire, uint8_t pin = NONE_INT, uint8_t addr_ = i2c_id);
+    EC_OEM(uint8_t pin = NONE_INT, uint8_t addr_ = ec_i2c_id);
+    EC_OEM(TwoWire * wire, uint8_t pin = NONE_INT, uint8_t addr_ = ec_i2c_id);
 
     void init(bool led_ = off_EC , bool hibernate_ = false, uint8_t int_CTRL = DISABLED_INTERRUPT );
 // device information
