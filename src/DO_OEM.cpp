@@ -79,7 +79,7 @@ void DO_OEM::initializeInstanceVariables(uint8_t pin, uint8_t addr_)
 void DO_OEM::init(bool led_, bool hibernate_, uint8_t int_CTRL)
 {
   this->wire->beginTransmission(device_addr);
-  this->wire->write(device_type);
+  this->wire->write((uint8_t) device_type);
   if( this->wire->endTransmission() == 0 )
   {
     if(getDeviceType() == DO_OEM_DEVICE )
