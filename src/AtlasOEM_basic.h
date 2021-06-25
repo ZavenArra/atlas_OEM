@@ -74,7 +74,7 @@ uint8_t getAddrressDevice(const T deviceType)
     for ( uint8_t addr = 1; addr < 128; addr++)
     {
       Wire.beginTransmission(addr);                                                            
-      Wire.write(device_type);                                                                                
+      Wire.write((uint8_t) device_type);                                                                                
       if( Wire.endTransmission() == 0 )
       {
         Wire.requestFrom(addr,1); 
